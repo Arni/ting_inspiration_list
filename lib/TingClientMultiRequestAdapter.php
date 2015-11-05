@@ -17,9 +17,9 @@ class TingClientMultiRequestAdapter extends TingClientRequestAdapter {
   public function execute(TingClientRequest $requestObject) {
     $requests = $requestObject->requests ;
     $soap_requests = array();
-   
+
     foreach ($requests as $request) {
-      
+
       $client = new NanoSOAPClient($request->getWsdlUrl());
       //Prepare the parameters for the SOAP request
       $request->getRequest();
@@ -38,7 +38,7 @@ class TingClientMultiRequestAdapter extends TingClientRequestAdapter {
       try {
         $startTime = explode(' ', microtime());
 
-        $response = curl_multi($soap_requests); 
+        $response = curl_multi($soap_requests);
         $stopTime = explode(' ', microtime());
         $time = floatval(($stopTime[1]+$stopTime[0]) - ($startTime[1]+$startTime[0]));
 
@@ -65,7 +65,7 @@ class TingClientMultiRequestAdapter extends TingClientRequestAdapter {
       throw $e;
     }
   }
-  
+
   private function make_curl_call($requests) {
     // Initialise and configure cURL.
     $response = array();
@@ -86,7 +86,7 @@ class TingClientMultiRequestAdapter extends TingClientRequestAdapter {
     // Close the cURL instance before we return.
     return $response;
   }
-  
+
     /**
    * Make a SOAP request.
    *
@@ -110,7 +110,7 @@ class TingClientMultiRequestAdapter extends TingClientRequestAdapter {
     $client->doc->loadXML($client->generateSOAPenvelope());
     $body = $client->doc->getElementsByTagName('Body')->item(0);
 
-    // Convert the parameters into XML elements and add them to the 
+    // Convert the parameters into XML elements and add them to the
     // body. The root element of this structure will be the action.
     $elem = $client->convertParameter($action, $parameters);
     $body->appendChild($elem);
@@ -121,11 +121,11 @@ class TingClientMultiRequestAdapter extends TingClientRequestAdapter {
     // Send the SOAP request to the server via CURL.
     return $this->buildCurlRequest($client->endpoint, 'POST', $client->requestBodyString, $headers);
   }
-  
+
     /**
    * Make a cURL request.
    *
-   * This is usually a SOAP request, but could ostensibly be used for 
+   * This is usually a SOAP request, but could ostensibly be used for
    * other things.
    *
    * @param string $url
@@ -140,15 +140,16 @@ class TingClientMultiRequestAdapter extends TingClientRequestAdapter {
    *   The response for the server, or FALSE on failure.
    */
   function buildCurlRequest($url, $method = 'GET', $body = '', $headers = array()) {
-    $curl_session = array();    
+    $curl_session = array();
     $curl_session['endpoint'] = $url;
-    // Array of cURL options. See the documentation for curl_setopt for 
+    // Array of cURL options. See the documentation for curl_setopt for
     // details on what options are available.
     $agent = 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.0.8) Gecko/2009032609 Firefox/3.0.8';
     $curl_options = array(
      // CURLOPT_URL => $url,
       CURLOPT_USERAGENT => $agent,
       CURLOPT_RETURNTRANSFER => TRUE,
+      CURLOPT_PROXY => '172.18.0.30:8080' //Todo remove developercode
     );
 
     if ($method == 'POST') {
@@ -161,7 +162,7 @@ class TingClientMultiRequestAdapter extends TingClientRequestAdapter {
     if (!empty($headers)) {
       $curl_options[CURLOPT_HTTPHEADER] = $headers;
     }
-   $curl_session['options'] = $curl_options;    
+   $curl_session['options'] = $curl_options;
    return $curl_session;
   }
 }
