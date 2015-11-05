@@ -175,14 +175,14 @@ function ting_inspiration_list_get_inspration_list_covers($node) {
   $cached_results = ting_inspiration_list_build_search_result($search_result, $node);
   ting_inspiration_list_set_cached_lists($node, $cached_results);
   // Update the cache history table.
-  if (isset($node->nid)) {
+  //if (isset($node->nid)) {
     $query = db_insert('cache_history_ting_inspiration_list');
     $query->fields(array(
       'nid' => $node->nid,
       'time' => time(),
     ));
     $query->execute();
-  }
+  //}
   return $cached_results;
 }
 
