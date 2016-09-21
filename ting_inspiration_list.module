@@ -349,17 +349,29 @@ function ting_inspiration_list_process_search_results($search_results) {
   return $ids;
 }
 
+/**
+ * Gets the number of holdings from the Library System provider.
+ *
+ * @param array $ids
+ *  The ids from the search result.
+ * @return array
+ *  Holdings info.
+ */
 function ting_inspiration_list_get_availability_info($ids) {
   $provider_ids = array();
   foreach ($ids as $id) {
-    $provider_ids[] = $id['localId'];
+    $provider_ids[] = $id->localId;
   }
   $availability_info = array();
   $offset = 0;
   if (count($provider_ids) > 0) {
-    $holdings = alma_search_availability_holdings($provider_ids);
-    foreach ($holdings as $id => $holding) {
-      $availability_info[$id] = $holding;
+    while (count($provider_ids) > $offset) {
+      $slice = array_slice($provider_ids, $offset, 50, true);
+      $holdings = ding_provider_invoke('availability', 'holdings', $slice);
+      foreach ($holdings as $id => $holding) {
+         $availability_info[$id] = $holding;
+      }
+      $offset += 50;
     }
   }
   return $availability_info;
