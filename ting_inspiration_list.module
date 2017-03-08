@@ -54,7 +54,44 @@ function ting_inspiration_list_menu() {
     'access arguments' => array('administer ting settings'),
     'file' => 'ting_inspiration_list.admin.inc',
   );
+  $items['ting/krimisite/minedata'] = array(
+    'title' => 'Get data from well',
+    'description' => t('Get data from well'),
+    'page callback' => 'ting_inspiration_list_mine_data',
+    'access arguments' => array('administer ting settings'),
+  );
   return $items;  
+}
+
+function ting_inspiration_list_mine_data() {
+  print ("hello");
+  $query = "krimi";
+  $raw_search_results = ting_inspiration_list_get_raw_result($query, 200, 0);
+  $ids = ting_inspiration_list_process_search_results($raw_search_results);
+  //Check how many copies of each material there is against the local library system.
+  $availablity_info = ting_inspiration_list_get_availability_info($ids);
+  $ranked_ids = ting_inspiration_list_process_availability($availablity_info, $ids);
+
+  file_put_contents("/var/www/drupalvm/drupal/debug/krim5.txt", print_r($availablity_info, TRUE), FILE_APPEND);
+
+//  foreach ($ranked_ids as $id => $object) {
+//    $nid = db_insert('ting_inspiration_list_holding_data')
+//            ->fields(array(
+//                'title' => $object->title,
+//                'id' => $id,
+//                'ownerid' => $object->ownerId,
+//                'localid' => $object->localId,
+//                'url' => $object->uri,
+//                'holding' => $object->holdingCount,
+//            ))
+//            ->execute();
+//  }
+  $query = db_query('SELECT * FROM ting_inspiration_list_holding_data');
+  $result = $query->fetchAll();
+  foreach ($result as $record) {
+    file_put_contents("/var/www/drupalvm/drupal/debug/krim6.txt", print_r($record, TRUE), FILE_APPEND);
+    print $record->title . "<br/>";
+  }
 }
 
 /**
@@ -333,10 +370,10 @@ function ting_inspiration_list_build_search_query($entity) {
  * @return TingClientSearchResult
  *  The search result.
  */
-function ting_inspiration_list_get_raw_result($query, $number_of_objects = 100) {
+function ting_inspiration_list_get_raw_result($query, $number_of_objects = 100, $page = 0) {
   $results = array();
   $objects_per_request = 50;
-  $i = 0;
+  $i = $page;
   $number_of_objects_retrieved = 0;
   do {
     $search_result = ting_inspiration_list_do_search($query, $i, $objects_per_request);
@@ -406,6 +443,7 @@ function ting_inspiration_list_get_availability_info($ids) {
     while (count($provider_ids) > $offset) {
       $slice = array_slice($provider_ids, $offset, 50, true);
       $holdings = ding_provider_invoke('availability', 'holdings', $slice);
+      file_put_contents("/var/www/drupalvm/drupal/debug/insplist1.txt", print_r($holdings, TRUE), FILE_APPEND);
       foreach ($holdings as $id => $holding) {
          $availability_info[$id] = $holding;
       }

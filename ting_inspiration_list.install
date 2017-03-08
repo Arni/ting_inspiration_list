@@ -11,35 +11,48 @@
  */
 function ting_inspiration_list_schema() {
   $schema = array();
-  $schema['cache_ting_inspiration_list'] = drupal_get_schema_unprocessed('system', 'cache');
-	$schema['cache_history_ting_inspiration_list'] = array(
-		'description' => 'Keeps track of nightly cache updates of inspiration lists',
-		'fields' => array(
-			'nid' => array(
-				'description' => 'The ID of the inspiration list node that was cached',
-				'type' => 'int',
-				'unsigned' => TRUE,
-				'not null' => TRUE,
-				'default' => 0,
-			),
-			'time' => array(
-				'description' => 'The time the nightly cache update was completed',
-				'type' => 'int',
-				'not null' => TRUE,
-				'default' => 0,
-			),
-		),
-		'primary key' => array('nid', 'time'),
-		'foreign keys' => array(
-			'node' => array(
-				'table' => 'node',
-				'columns' => array('nid' => 'nid'),
-			),
-		), 
-		'indexes' => array(
-			'time' => array('time'),
-		),
-	);  
+    $schema['ting_inspiration_list_holding_data'] = array(
+	'description' => 'Keeps track of holdingcount',
+	'fields' => array(
+          'title' => array(
+            'description' => 'The title of the material',
+            'type' => 'varchar',
+            'length' => 255,
+            'not null' => TRUE,
+            'default' => ''),
+	   'id' => array(
+            'description' => 'The id of the material',
+            'type' => 'varchar',
+            'length' => 255,
+            'not null' => TRUE,
+            'default' => ''),	
+	   'localid' => array(
+            'description' => 'Local id of the material',
+            'type' => 'varchar',
+            'length' => 255,
+            'not null' => TRUE,
+            'default' => ''),
+	   'ownerid' => array(
+            'description' => 'Ownerid of the material',
+            'type' => 'varchar',
+            'length' => 255,
+            'not null' => TRUE,
+            'default' => ''),
+	   'url' => array(
+            'description' => 'Url of the material',
+            'type' => 'varchar',
+            'length' => 255,
+            'not null' => TRUE,
+            'default' => ''),
+	   'holding' => array(
+            'description' => 'Holdingscount for the material',
+            'type' => 'int',
+            'unsigned' => TRUE,
+            'not null' => TRUE,
+            'default' => 0),            
+	),
+          'primary key' => array('id'),  
+                );  
   return $schema;
 }
 
@@ -54,10 +67,10 @@ function ting_inspiration_list_install() {
  * Implements hook_uninstall().
  */
 function ting_inspiration_list_uninstall() {
-	if (db_table_exists('cache_ting_inspiration_list')) {
-		db_drop_table('cache_ting_inspiration_list');
-	}	
-	if (db_table_exists('cache_history_ting_inspiration_list')) {
-		db_drop_table('cache_history_ting_inspiration_list');
-	}
+//	if (db_table_exists('cache_ting_inspiration_list')) {
+//		db_drop_table('cache_ting_inspiration_list');
+//	}	
+//	if (db_table_exists('cache_history_ting_inspiration_list')) {
+//		db_drop_table('cache_history_ting_inspiration_list');
+//	}
 }

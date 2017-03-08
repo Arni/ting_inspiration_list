@@ -23,19 +23,19 @@ function ting_inspiration_list_check_covers($covers_ids, $number_of_objects) {
     if (file_exists($path)) {
       $cover_id->hasImage = TRUE;
     } else {
-      $missing_images_local_ids[] = (object) array(
-          'localIdentifier' => $cover_id->localId,
-          'libraryCode' => $cover_id->ownerId,
-      );
+      $missing_images_local_ids[] = $cover_id->localId;//(object) array(
+        //  'localIdentifier' => $cover_id->localId,
+        //  'libraryCode' => $cover_id->ownerId,
+      //);
     }
     $number_found++;
     if ($number_found >= $number_of_objects) {
       break;
     }
   }
-  $service = new AdditionalInformationService(variable_get('addi_wsdl_url'), variable_get('addi_username'), variable_get('addi_group'), variable_get('addi_password'));
+  $service = new AdditionalInformationService(variable_get('ting_covers_addi_wsdl_url'), variable_get('addi_username'), variable_get('addi_group'), variable_get('addi_password'));
   // Local ids = Faust numbers. Library object identifiers can be confusing.
-  $additional_informations = $service->getByLocalIdentifier($missing_images_local_ids);
+  $additional_informations = $service->getByFaustNumber($missing_images_local_ids);
   foreach ($missing_images_local_ids as $local_id) {
     if (isset($additional_informations[$local_id->localIdentifier]) && $ai = $additional_informations[$local_id->localIdentifier]) {
       if ($ai->detailUrl || $ai->thumbnailUrl) {
