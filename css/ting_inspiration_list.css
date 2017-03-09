@@ -21,3 +21,22 @@
   margin-left: 20px;
 }
 
+.ting-inspiration-list .ting-cover {
+    background-image: url(/profiles/ding2/modules/ting_inspiration_list/images/defaultcover.jpg); 
+    width: 140px;
+    height: 203px;
+}
+
+.ting-inspiration-list .ting-cover img {
+    position: absolute;
+}
+
+.ting-inspiration-list .ting-cover p {
+    position: absolute;
+    padding-top: 30px;
+    color: #ffffff;
+}
+
+.ting-inspiration-list .ting-cover:before {
+    content: "";
+}
