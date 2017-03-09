@@ -65,9 +65,10 @@ function ting_inspiration_list_menu() {
 
 function ting_inspiration_list_mine_data() {
   print ("hello");
-  $query = "krimi";
-  $raw_search_results = ting_inspiration_list_get_raw_result($query, 500, 0);
+  $query = "krimi AND facet.category=voksenmaterialer AND facet.acSource=bibliotekskatalog";
+  $raw_search_results = ting_inspiration_list_get_raw_result($query, 500, 40);
   $ids = ting_inspiration_list_process_search_results($raw_search_results);
+  file_put_contents("/var/www/drupalvm/drupal/debug/krim15.txt", print_r($ids, TRUE), FILE_APPEND);
   //Check how many copies of each material there is against the local library system.
   $availablity_info = ting_inspiration_list_get_availability_info($ids);
   $ranked_ids = ting_inspiration_list_process_availability($availablity_info, $ids);
@@ -77,7 +78,15 @@ function ting_inspiration_list_mine_data() {
   //$num_deleted = db_delete('ting_inspiration_list_holding_data')
   //->execute();
   
+  $query = db_query('SELECT * FROM ting_inspiration_list_holding_data');
+  $result = $query->fetchAll();
+  $ids_in_db = array();
+  foreach ($result as $record) {
+     $ids_in_db[$record->id] = $record->id;
+  }
+  
   foreach ($ranked_ids as $id => $object) {
+    if (!array_key_exists($id, $ids_in_db)) {
     $nid = db_insert('ting_inspiration_list_holding_data')
             ->fields(array(
                 'title' => $object->title,
@@ -88,6 +97,7 @@ function ting_inspiration_list_mine_data() {
                 'holding' => $object->holdingCount,
             ))
             ->execute();
+    }
   }
   $query = db_query('SELECT * FROM ting_inspiration_list_holding_data');
   $result = $query->fetchAll();
@@ -308,9 +318,10 @@ function ting_inspiration_list_render_cover($cached_results, $title) {
       'html' => TRUE,
       'attributes' => array('title' => $object->collectionTitle),
     );
-    file_put_contents("/var/www/drupalvm/drupal/debug/krim11.txt", print_r($image, TRUE), FILE_APPEND);
+    $title_info = '<div class="ting-inspiration-item-title">' . $object->title . '<br/>' . $object->creators[0] . '</div>';
+    $item = $image . $title_info;
     $results[] = array(
-      'snippet' => l($image, $object->uri, $options)
+      'snippet' => l($item, $object->uri, $options)
     );
   }
     // Set default page result.
@@ -476,13 +487,17 @@ function ting_inspiration_list_get_availability_info($ids) {
   $offset = 0;
   if (count($provider_ids) > 0) {
     while (count($provider_ids) > $offset) {
-      $slice = array_slice($provider_ids, $offset, 20, true);
+      $slice = array_slice($provider_ids, $offset, 50, true);
+      try {
       $holdings = ding_provider_invoke('availability', 'holdings', $slice);
       file_put_contents("/var/www/drupalvm/drupal/debug/insplist1.txt", print_r($holdings, TRUE), FILE_APPEND);
       foreach ($holdings as $id => $holding) {
          $availability_info[$id] = $holding;
       }
-      $offset += 20;      
+      $offset += 50;  
+      } catch (Exception $e) {
+         file_put_contents("/var/www/drupalvm/drupal/debug/krimi14.txt", print_r("error  ", TRUE), FILE_APPEND);
+      }
     }
   }
   return $availability_info;
