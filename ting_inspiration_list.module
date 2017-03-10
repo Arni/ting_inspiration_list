@@ -66,27 +66,31 @@ function ting_inspiration_list_menu() {
 function ting_inspiration_list_mine_data() {
   print ("hello");
   $query = "krimi AND facet.category=voksenmaterialer AND facet.acSource=bibliotekskatalog";
-  $raw_search_results = ting_inspiration_list_get_raw_result($query, 500, 40);
+  $raw_search_results = ting_inspiration_list_get_raw_result($query, 500, 10);
   $ids = ting_inspiration_list_process_search_results($raw_search_results);
   file_put_contents("/var/www/drupalvm/drupal/debug/krim15.txt", print_r($ids, TRUE), FILE_APPEND);
+  file_put_contents("/var/www/drupalvm/drupal/debug/krim19.txt", print_r($raw_search_results, TRUE), FILE_APPEND);
+  $holdings = ting_inspiration_list_parse_holdings_data();
+  $ids = ting_inspiration_list_get_holdings($holdings, $ids);
+ 
   //Check how many copies of each material there is against the local library system.
-  $availablity_info = ting_inspiration_list_get_availability_info($ids);
-  $ranked_ids = ting_inspiration_list_process_availability($availablity_info, $ids);
+  //$availablity_info = ting_inspiration_list_get_availability_info($ids);
+  //$ranked_ids = ting_inspiration_list_process_availability($availablity_info, $ids);
 
-  file_put_contents("/var/www/drupalvm/drupal/debug/krim5.txt", print_r($availablity_info, TRUE), FILE_APPEND);
 
   //$num_deleted = db_delete('ting_inspiration_list_holding_data')
-  //->execute();
+  // ->execute();
   
   $query = db_query('SELECT * FROM ting_inspiration_list_holding_data');
   $result = $query->fetchAll();
   $ids_in_db = array();
   foreach ($result as $record) {
-     $ids_in_db[$record->id] = $record->id;
+     $ids_in_db[$record->id] = $record->id; 
   }
   
-  foreach ($ranked_ids as $id => $object) {
+  foreach ($ids as $id => $object) {
     if (!array_key_exists($id, $ids_in_db)) {
+    $ids_string = implode(',', $object->ids);
     $nid = db_insert('ting_inspiration_list_holding_data')
             ->fields(array(
                 'title' => $object->title,
@@ -95,6 +99,7 @@ function ting_inspiration_list_mine_data() {
                 'localid' => $object->localId,
                 'url' => $object->uri,
                 'holding' => $object->holdingCount,
+                'objectids' => $ids_string, 
             ))
             ->execute();
     }
@@ -103,26 +108,59 @@ function ting_inspiration_list_mine_data() {
   $result = $query->fetchAll();
   foreach ($result as $record) {
     file_put_contents("/var/www/drupalvm/drupal/debug/krim6.txt", print_r($record, TRUE), FILE_APPEND);
-    print $record->title . "<br/>";
+    print $record->title . ' ' . $record->id . ' ' .  $record->objectids . ' ' . $record->holding . "<br/>";
   }
+}
+
+function ting_inspiration_list_get_holdings($holdings, $ids) {
+  //Todo handle no holdings
+  //$noholdings = array();
+  foreach ($ids as $collection_object) {
+    $collection_object->holdingCount = 0;
+    foreach ($collection_object->ids as $id) {
+      if (array_key_exists($id, $holdings)) {
+        $collection_object->holdingCount += $holdings[$id];
+      }
+    }
+  }
+  file_put_contents("/var/www/drupalvm/drupal/debug/krim23.txt", print_r($ids, TRUE), FILE_APPEND);
+  return $ids;
+}
+
+function ting_inspiration_list_parse_holdings_data( ) {
+   $holding_data = file('/var/www/drupalvm/drupal/bestand.txt'); 
+   $holding_results = array();
+   foreach ($holding_data as $holding_item) {
+     $item = explode(',', $holding_item);
+     $faust = $item[1];
+     $count = $item[3];
+     if (array_key_exists($faust, $holding_results)) {
+       $holding_results[$faust] += $count;
+     } else {
+       $holding_results[$faust] = $count;
+     }
+   }
+   file_put_contents("/var/www/drupalvm/drupal/debug/holdings.txt", print_r($holding_results, TRUE), FILE_APPEND);
+   return $holding_results;
 }
 
 function ting_inspiration_list_search($query) {
   $raw_search_results = ting_inspiration_list_get_raw_result($query . ' AND krimi', 100);
   $ids = ting_inspiration_list_process_search_results($raw_search_results);
   $holding_data = ting_inspiration_list_get_holdings_from_db();
-  //file_put_contents("/var/www/drupalvm/drupal/debug/krim7.txt", print_r($holding_data, TRUE), FILE_APPEND);
-  //file_put_contents("/var/www/drupalvm/drupal/debug/krim8.txt", print_r($ids, TRUE), FILE_APPEND);
+  file_put_contents("/var/www/drupalvm/drupal/debug/krim16.txt", print_r($ids, TRUE), FILE_APPEND);
+  file_put_contents("/var/www/drupalvm/drupal/debug/krim18.txt", print_r($raw_search_results, TRUE), FILE_APPEND);
   $result = array();
-  foreach ($holding_data as $id => $holding) {
-    if (array_key_exists($id, $ids)) {
-       $ids[$id]->holdingCount = $holding;
-       $url_parts = explode ('/', $ids[$id]->uri);
-       $ids[$id]->id = $url_parts[2];
-       $result[$id] = $ids[$id];
+  foreach ($ids as $collection_object) {
+    if (array_key_exists($collection_object->localId, $holding_data)) {
+       $collection_object->holdingCount = $holding_data[$collection_object->localId];
+       $url_parts = explode ('/', $collection_object->uri);
+       $collection_object->id = $url_parts[2];
+       $result[$collection_object->localId] = $collection_object;
     }
   }
   uasort($result, 'ting_inspiration_list_sort_holding_count');
+  file_put_contents("/var/www/drupalvm/drupal/debug/krim17.txt", print_r($result, TRUE), FILE_APPEND);
    //file_put_contents("/var/www/drupalvm/drupal/debug/krim10.txt", print_r($result, TRUE), FILE_APPEND);
   return ting_inspiration_list_render_cover($result, t('Search result'));
  
@@ -133,7 +171,11 @@ function ting_inspiration_list_get_holdings_from_db() {
   $result = $query->fetchAll();
   $holding_data = array();
   foreach ($result as $record) {
-    $holding_data[$record->id] = $record->holding;
+    $ids = explode(',',$record->objectids);
+    foreach ($ids as $id) {
+      $holding_data[$id] = $record->holding;
+    }
+    
   }
   return $holding_data;
 }
@@ -448,8 +490,10 @@ function ting_inspiration_list_process_search_results($search_results) {
     foreach ($search_results as $search_result)
       if (is_array($search_result->collections)) {
         foreach ($search_result->collections as $collection) {
+          $object_ids = array();
           foreach ($collection->reply->objects as $object) {
-            if (isset($object->ownerId) && isset($object->localId)) {
+            $object_ids[] = $object->localId;           
+          }
               $coverObject = new CoverObject();
 
               $coverObject->title = $collection->primary_object->title;
@@ -460,10 +504,10 @@ function ting_inspiration_list_process_search_results($search_results) {
               // Get link to link the result back to the collection.
               $uri = entity_uri('ting_collection', $collection);
               $coverObject->uri = $uri['path'];
+              $coverObject->ids = $object_ids;
 
               $ids[$coverObject->localId] = $coverObject;
-            }
-          }
+              file_put_contents("/var/www/drupalvm/drupal/debug/krim20.txt", print_r($coverObject, TRUE), FILE_APPEND);
         }
       }
   }
@@ -490,7 +534,6 @@ function ting_inspiration_list_get_availability_info($ids) {
       $slice = array_slice($provider_ids, $offset, 50, true);
       try {
       $holdings = ding_provider_invoke('availability', 'holdings', $slice);
-      file_put_contents("/var/www/drupalvm/drupal/debug/insplist1.txt", print_r($holdings, TRUE), FILE_APPEND);
       foreach ($holdings as $id => $holding) {
          $availability_info[$id] = $holding;
       }
@@ -549,7 +592,7 @@ function ting_inspiration_list_do_search($query, $page = 0, $num_per_page = 10) 
   // Build search options and ensure that they are sorted corretly.
   $options = array();
   $options['enrich'] = TRUE;
-  $options['collectionType'] = 'manifestation';
+  //$options['collectionType'] = 'manifestation';
 
   // Search the data well.
   $search_result = array();
@@ -621,5 +664,5 @@ class CoverObject {
   public $uri;
   public $holdingCount;
   public $hasImage;
-
+  public $ids;
 }

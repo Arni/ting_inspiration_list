@@ -44,6 +44,12 @@ function ting_inspiration_list_schema() {
             'length' => 255,
             'not null' => TRUE,
             'default' => ''),
+        'objectids' => array(
+            'description' => 'Ids of the individual objects',
+            'type' => 'varchar',
+            'length' => 255,
+            'not null' => TRUE,
+            'default' => ''),
 	   'holding' => array(
             'description' => 'Holdingscount for the material',
             'type' => 'int',
