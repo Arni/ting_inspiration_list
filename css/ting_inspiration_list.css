@@ -44,6 +44,24 @@
 .ting-inspiration-item-title {
     width: 190px;
     position: absolute;
+    font-size: 18px;
+    padding-top: 10px;
 }
 
+.ting-inspiration-list .list-item a {
+    color: #000;
+}
 
+/** General styling */
+
+.ding2-site-template .panel-pane .pane-content .default-panel-layout .left-and-main-content .layout-wrapper .primary-content {
+    width : 100%;
+}
+
+.ding2-site-template .main-menu-wrapper>ul.main-menu>li a {
+    color: #fff;
+}
+
+.ding2-site-template .site-header .header-inner .pane-search-form {
+    width: 43%;
+}
