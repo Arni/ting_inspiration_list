@@ -138,7 +138,7 @@ function ting_inspiration_list_parse_holdings_data( ) {
 }
 
 function ting_inspiration_list_search($query, $title = 'Søgeresultat', $number_of_objects = 100) {
-  $raw_search_results = ting_inspiration_list_get_raw_result($query . ' AND (krimi AND facet.category=voksenmaterialer AND facet.acSource=bibliotekskatalog)', 100);
+  $raw_search_results = ting_inspiration_list_get_raw_result('(' . $query . ') AND (krimi AND facet.category=voksenmaterialer AND facet.acSource=bibliotekskatalog)', 100);
   $ids = ting_inspiration_list_process_search_results($raw_search_results);
   $holding_data = ting_inspiration_list_get_holdings_from_db();
   //file_put_contents("/var/www/drupalvm/drupal/debug/krim16.txt", print_r($ids, TRUE), FILE_APPEND);
@@ -186,6 +186,19 @@ function ting_inspiration_list_get_holdings_from_db() {
      $holding_data[$record->id] = $record->holding;   
   }
   return $holding_data;
+}
+
+function ting_inspiration_list_render_recommendations($title, $recommendations) {
+  $results = array();
+    foreach ($recommendations as $rec) {
+      $coverObject = new CoverObject();
+      $coverObject->title = $rec->title;  
+      $coverObject->creators = array($rec->creator) ;
+      $coverObject->uri = 'ting/collection/' . $rec->pid;
+      $coverObject->id = $rec->pid;
+      $results[] = $coverObject;
+  }
+  return ting_inspiration_list_render_cover($results, $title);
 }
 
 /**

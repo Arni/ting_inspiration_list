@@ -22,10 +22,18 @@ function ting_inspiration_list_rec_content_type_render($subtype, $conf, $panel_a
   // Define the return block.
   $block = new stdClass();
   
-  //$ting_object_id = ting_adhl_get_id($contexts);
+  //$ting_object_id =  ting_inspiration_list_get_id($context);
   //$result = ting_inspiration_list_search('holdingsitem.accessionDate>="NOW-100DAYS"', 'Nye materialer', 10); 
-  
-  $block->content = 'Test'; //$result;
+  //$token = ting_open_platform_get_token();
+  //file_put_contents("/var/www/drupalvm/drupal/debug/id.txt", print_r($ting_object_id  , TRUE), FILE_APPEND);
+  //file_put_contents("/var/www/drupalvm/drupal/debug/id.txt", print_r($context  , TRUE), FILE_APPEND);
+  $path = explode('/', current_path()); 
+  $id = $path[2]; 
+  $result = ting_open_platform_recommender(array($id));
+  file_put_contents("/var/www/drupalvm/drupal/debug/path.txt", print_r($id  , TRUE), FILE_APPEND);
+  file_put_contents("/var/www/drupalvm/drupal/debug/recom.txt", print_r($result  , TRUE), FILE_APPEND);
+  $block->content = ting_inspiration_list_render_recommendations("Anbefalinger", $result->data);
+  //$block->content = 'Test'; //$result;
   $path = drupal_get_path('module', 'ting_inspiration_list');
   drupal_add_css($path . '/css/ting_inspiration_list.css');
   drupal_add_js(drupal_get_path('module', 'ting_covers') . '/js/ting-covers.js');
