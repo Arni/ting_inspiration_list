@@ -21,15 +21,11 @@ $plugin = array(
 function ting_inspiration_list_rec_content_type_render($subtype, $conf, $panel_args, $context) {
   // Define the return block.
   $block = new stdClass();
-  
-  //$ting_object_id =  ting_inspiration_list_get_id($context);
-  //$result = ting_inspiration_list_search('holdingsitem.accessionDate>="NOW-100DAYS"', 'Nye materialer', 10); 
-  //$token = ting_open_platform_get_token();
-  //file_put_contents("/var/www/drupalvm/drupal/debug/id.txt", print_r($ting_object_id  , TRUE), FILE_APPEND);
-  //file_put_contents("/var/www/drupalvm/drupal/debug/id.txt", print_r($context  , TRUE), FILE_APPEND);
   $path = explode('/', current_path()); 
   $id = $path[2]; 
-  $result = ting_open_platform_recommender(array($id));
+  
+  ting_inspiration_list_set_cookie($id);
+  $result = ting_open_platform_recommender(array($id),10);
   file_put_contents("/var/www/drupalvm/drupal/debug/path.txt", print_r($id  , TRUE), FILE_APPEND);
   file_put_contents("/var/www/drupalvm/drupal/debug/recom.txt", print_r($result  , TRUE), FILE_APPEND);
   $block->content = ting_inspiration_list_render_recommendations("Anbefalinger", $result->data);
@@ -41,6 +37,22 @@ function ting_inspiration_list_rec_content_type_render($subtype, $conf, $panel_a
 }
 
 
+function ting_inspiration_list_set_cookie($id) {
+  if (isset($_COOKIE['ting_inspiration_list_objects'])) {
+    $json = $_COOKIE['ting_inspiration_list_objects'];
+    $objects = json_decode($json);
+    if (count($objects) >= 5) {
+      array_shift($objects);
+    }
+    $objects[] = $id;
+    $json = json_encode($objects);
+    setcookie('ting_inspiration_list_objects', $json, time()+ 2000000, '/');
+  } else {
+    $json = json_encode(array($id));
+    setcookie('ting_inspiration_list_objects', $json, time()+ 2000000, '/');
+  }
+}
+
 /**
  * Enable admin settings page.
  */
@@ -48,26 +60,7 @@ function ting_inspiration_list_rec_content_type_edit_form($form, &$form_state) {
   return $form;
 }
 
-function ting_inspiration_list_get_id($contexts) {
-// Get the objects to base the recommendation on based on the first supplied
-// context
-  $id = null;
-  $ting_object_id = null;
-  foreach ($contexts as $context) {
-    $object = $context->get_original_argument();
-    if ($object) {
-      $id = $object->getId();
-      break;
-    }
-  }
-  if ($id) {
-    $parts = explode(":", $id);
-    if (isset($parts[1])) {
-      $ting_object_id = $parts[1];
-    }
-  }
-  return $ting_object_id;
-}
+
 
 
 

@@ -138,11 +138,11 @@ function ting_inspiration_list_parse_holdings_data( ) {
 }
 
 function ting_inspiration_list_search($query, $title = 'Søgeresultat', $number_of_objects = 100) {
-  $raw_search_results = ting_inspiration_list_get_raw_result('(' . $query . ') AND (krimi AND facet.category=voksenmaterialer AND facet.acSource=bibliotekskatalog)', 100);
+  $raw_search_results = ting_inspiration_list_get_raw_result('(' . $query . ') AND (krimi AND facet.category=voksenmaterialer AND facet.acSource=bibliotekskatalog)', $number_of_objects);
   $ids = ting_inspiration_list_process_search_results($raw_search_results);
   $holding_data = ting_inspiration_list_get_holdings_from_db();
   //file_put_contents("/var/www/drupalvm/drupal/debug/krim16.txt", print_r($ids, TRUE), FILE_APPEND);
-  file_put_contents("/var/www/drupalvm/drupal/debug/krim18.txt", print_r($raw_search_results, TRUE), FILE_APPEND);
+  //file_put_contents("/var/www/drupalvm/drupal/debug/krim18.txt", print_r($raw_search_results, TRUE), FILE_APPEND);
   $result = array();
   foreach ($ids as $collection_object) {
     $holding_count = 0;
@@ -178,6 +178,25 @@ function ting_inspiration_list_search($query, $title = 'Søgeresultat', $number_
  
 } 
 
+function ting_inspiration_list_find_primary_object($collection, $holding_data) {
+  $top_count = 0;
+  $primary_object = null;
+  foreach ($collection as $collection_object) {
+    if ($primary_object == null) {
+      $primary_object = $collection_object;
+    }
+    $id = explode(':', $collection_object);
+    $id = $id[1];
+    if (array_key_exists($id, $holding_data)) {
+      if ($holding_data[$id] > $top_count) {
+        $primary_object = $collection_object;
+        $top_count = $holding_data[$id];
+      }
+    }
+  }
+  return $primary_object;
+}
+
 function ting_inspiration_list_get_holdings_from_db() {
   $query = db_query('SELECT * FROM ting_inspiration_list_holding_data');
   $result = $query->fetchAll();
@@ -189,15 +208,26 @@ function ting_inspiration_list_get_holdings_from_db() {
 }
 
 function ting_inspiration_list_render_recommendations($title, $recommendations) {
+  $query = array();
   $results = array();
-    foreach ($recommendations as $rec) {
-      $coverObject = new CoverObject();
-      $coverObject->title = $rec->title;  
-      $coverObject->creators = array($rec->creator) ;
-      $coverObject->uri = 'ting/collection/' . $rec->pid;
-      $coverObject->id = $rec->pid;
-      $results[] = $coverObject;
+  foreach ($recommendations as $rec) {
+    $query[] = 'rec.id="' . $rec->pid . '"';
   }
+  $query_string = (implode(' OR ', $query));
+  $objects = ting_open_platform_search_collection($query_string);
+  file_put_contents("/var/www/drupalvm/drupal/debug/open-objects.txt", print_r($objects, TRUE), FILE_APPEND);
+  $holding_data = ting_inspiration_list_get_holdings_from_db();
+  foreach ($objects->data as $object) {
+    $coverObject = new CoverObject();
+    $coverObject->title = $object->title[0];
+    $coverObject->creators = $object->creator;
+    $id = ting_inspiration_list_find_primary_object($object->collection, $holding_data);
+    $coverObject->uri = 'ting/object/' . $id;
+    $coverObject->id = $id;
+    $results[] = $coverObject;
+  }
+
+  file_put_contents("/var/www/drupalvm/drupal/debug/rec2.txt", print_r($results, TRUE), FILE_APPEND);
   return ting_inspiration_list_render_cover($results, $title);
 }
 
@@ -527,7 +557,7 @@ file_put_contents("/var/www/drupalvm/drupal/debug/krim-tingobject.txt", print_r(
             $coverObject->ownerId = $object->ownerId;
             $coverObject->collectionTitle = $collection->title;
             // Get link to link the result back to the collection.
-            $uri = entity_uri('ting_collection', $object);
+            $uri = entity_uri('ting_object', $object);
             $coverObject->uri = $uri['path'];
             $coverObject->id = $object->id;
 
