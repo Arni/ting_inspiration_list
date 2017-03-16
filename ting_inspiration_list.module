@@ -215,9 +215,11 @@ function ting_inspiration_list_render_recommendations($title, $recommendations) 
   }
   $query_string = (implode(' OR ', $query));
   $objects = ting_open_platform_search_collection($query_string);
+  $objects  = array_reverse($objects->data );
+  file_put_contents("/var/www/drupalvm/drupal/debug/query2.txt", print_r($query_string, TRUE), FILE_APPEND);
   file_put_contents("/var/www/drupalvm/drupal/debug/open-objects.txt", print_r($objects, TRUE), FILE_APPEND);
   $holding_data = ting_inspiration_list_get_holdings_from_db();
-  foreach ($objects->data as $object) {
+  foreach ($objects as $object) {
     $coverObject = new CoverObject();
     $coverObject->title = $object->title[0];
     $coverObject->creators = $object->creator;
@@ -225,8 +227,11 @@ function ting_inspiration_list_render_recommendations($title, $recommendations) 
     $coverObject->uri = 'ting/object/' . $id;
     $coverObject->id = $id;
     $results[] = $coverObject;
+    if(count($results) >=10) {
+      break;
+    }
   }
-
+  
   file_put_contents("/var/www/drupalvm/drupal/debug/rec2.txt", print_r($results, TRUE), FILE_APPEND);
   return ting_inspiration_list_render_cover($results, $title);
 }

@@ -25,7 +25,7 @@ function ting_inspiration_list_rec_content_type_render($subtype, $conf, $panel_a
   $id = $path[2]; 
   
   ting_inspiration_list_set_cookie($id);
-  $result = ting_open_platform_recommender(array($id),10);
+  $result = ting_open_platform_recommender(array($id),15);
   file_put_contents("/var/www/drupalvm/drupal/debug/path.txt", print_r($id  , TRUE), FILE_APPEND);
   file_put_contents("/var/www/drupalvm/drupal/debug/recom.txt", print_r($result  , TRUE), FILE_APPEND);
   $block->content = ting_inspiration_list_render_recommendations("Anbefalinger", $result->data);
